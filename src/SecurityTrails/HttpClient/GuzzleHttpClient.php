@@ -1,13 +1,14 @@
 <?php
 
 
-namespace SecurityTrails\Utils;
+namespace SecurityTrails\HttpClient;
 
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use RequestInterface;
 
-class Request
+class GuzzleHttpClient implements RequestInterface
 {
     /**
      * To change these values, you could extend this class
@@ -15,6 +16,40 @@ class Request
      */
     const MAX_ATTEMPTS           = 2;
     const SLEEP_BETWEEN_REQUESTS = 0.5;
+
+    /*
+     * Throttle requests
+     * @var bool
+     */
+    private $throttle_request;
+
+    /*
+     * Client for throttling requests
+     * @var ThrottleRequestsInterface
+     */
+    private $request_throttler;
+
+    /*
+     * 
+     * @var bool
+     */
+    private $retry_failed_request;
+
+    /*
+     *
+     */
+    private $max_attempts;
+
+    /*
+     *
+     */
+    private $sleep_between_requests;
+
+    public function __construct(array $settings = [])
+    {
+        $this->max_attempts = $settings['request_max_attempts'];
+        $this->max_attempts = $settings['request_max_attempts'];
+    }
 
     public static function getAttempts($custom_attempts = null)
     {

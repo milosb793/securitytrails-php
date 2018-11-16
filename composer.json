@@ -12,20 +12,21 @@
   "licence": "Apache-2.0",
   "authors": [
     {
-      "name": "Milosš Bolic",
+      "name": "Miloš Bolicć",
       "email": "milosb793@gmail.com",
       "homepage": "https://github.com/milosb793",
       "role": "Developer"
     },
     {
       "name": "Stefan Kuprešak",
-      "email": "",
+      "email": "stefan_vg@hotmail.com",
       "homepage": "https://github.com/dev-cyprium",
       "role": "Developer"
     }
   ],
   "require": {
     "php": ">=7.0",
+    "davedevelopment/stiphle": "^0.9.2",
     "guzzlehttp/guzzle": "^6.3",
     "nesbot/carbon": "^2.5",
     "vlucas/phpdotenv": "^2.5"

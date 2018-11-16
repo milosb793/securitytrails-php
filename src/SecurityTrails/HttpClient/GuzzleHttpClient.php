@@ -4,65 +4,101 @@
 namespace SecurityTrails\HttpClient;
 
 use Exception;
-use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use RequestInterface;
+use SecurityTrails\Client\Configuration;
+use SecurityTrails\HttpClient\Throttle\ThrottleRequestInterface;
+use SecurityTrails\SecurityTrails\HttpClient\HttpClient;
 
-class GuzzleHttpClient implements RequestInterface
+class GuzzleHttpClient extends HttpClient
 {
-    /**
-     * To change these values, you could extend this class
-     * and define your own constants
-     */
-    const MAX_ATTEMPTS           = 2;
-    const SLEEP_BETWEEN_REQUESTS = 0.5;
+
+    private $http_client;
 
     /*
      * Throttle requests
      * @var bool
      */
-    private $throttle_request;
+    private $throttle_requests;
 
     /*
-     * Client for throttling requests
+     * Client for throttling requests,
+     * if $throttle_requests is set to true
      * @var ThrottleRequestsInterface
      */
-    private $request_throttler;
+    public $request_throttler;
 
     /*
-     * 
+     * Retry failed requests
      * @var bool
      */
-    private $retry_failed_request;
+    private $retry_failed_requests;
 
     /*
-     *
+     * Max attempts to retry failed request,
+     * if $retry_failed_requests is set to true
+     * @var int
      */
     private $max_attempts;
 
     /*
-     *
+     * Time to sleep between requests in seconds
+     * @var int|float
      */
     private $sleep_between_requests;
 
+    /**
+     * GuzzleHttpClient constructor.
+     *
+     * @param array $settings
+     * @throws Exception
+     */
     public function __construct(array $settings = [])
     {
-        $this->max_attempts = $settings['request_max_attempts'];
-        $this->max_attempts = $settings['request_max_attempts'];
-    }
+        $this->http_client = new \GuzzleHttp\Client();
 
-    public static function getAttempts($custom_attempts = null)
-    {
-        if ($custom_attempts && is_numeric($custom_attempts)) {
-            return $custom_attempts;
+        $this->throttle_requests = Configuration::default('request_throttle_requests', $settings);
+        if ($this->throttle_requests) {
+            $this->request_throttler = new Throttle\RequestThrottler();
         }
 
-        return static::MAX_ATTEMPTS;
+        $this->retry_failed_requests  = Configuration::default('request_retry_failed_requests', $settings);
+        $this->sleep_between_requests = Configuration::default('request_sleep_between_requests', $settings);
+        $this->max_attempts           = Configuration::default('request_max_attempts', $settings);
     }
 
-    public static function getSleepSecondsBetweenRequestSequence()
+    public function setCustomRequestThrottler(ThrottleRequestInterface $throttle_client)
     {
-        return static::SLEEP_BETWEEN_REQUESTS;
+        $this->throttle_requests = true;
+        $this->request_throttler = $throttle_client;
+    }
+
+    public function throttle($identification_key, $unit_number, $interval_sec)
+    {
+        $this->request_throttler->throttle($identification_key, $unit_number, $interval_sec);
+    }
+
+    public function getMaxAttempts()
+    {
+        return $this->max_attempts ?? 1;
+    }
+
+    public function setMaxAttempts(int $attempts)
+    {
+        if (is_numeric($attempts) && $attempts > 0) {
+            $this->max_attempts = $attempts;
+        }
+    }
+
+    public function getSleepSecondsBetweenRequestSequence()
+    {
+        return $this->sleep_between_requests;
+    }
+
+    public function setSleepSecondsBetweenRequestSequence($seconds)
+    {
+        if (is_float($seconds) || is_integer($seconds)) {
+            $this->sleep_between_requests = $seconds;
+        }
     }
 
     /**
@@ -73,40 +109,29 @@ class GuzzleHttpClient implements RequestInterface
      * @return null
      * @throws GuzzleException
      */
-    public static function get($endpoint, array $arguments = [])
+    public function get(string $endpoint, array $arguments = [])
     {
-        $client        = new Client();
-        $data          = null;
-        $attempts      = static::getAttempts($arguments['attempts'] ?? null);
-        $sleep_seconds = static::getSleepSecondsBetweenRequestSequence();
-
         /**
          * Wrap whole request so make it repeat itself until
          * response is not null or attempts got decreased to zero
          */
-        while ($attempts >= 0 && !$data) {
 
-            $response = $client->request('GET', $endpoint, [
+        $data     = null;
+        $attempts = $this->getMaxAttempts();
+
+        while ($attempts >= 0 && $data == null) {
+            $response = $this->http_client->request('GET', $endpoint, [
                 "headers" => $arguments['headers'] ?? [],
                 "auth"    => $arguments['auth'] ?? [],
             ]);
 
-            if ($response->getStatusCode() !== 200) {
-                throw new Exception("Can't get page content!", $response->getStatusCode());
-            }
+            $response_parsed = $this->response($response);
+            $data            = $response_parsed['data'];
 
-            $data = json_decode($response->getBody()->getContents(), true) ?? null;
-
-            if (empty($data)) {
-                throw new Exception("Response body is empty!");
-            }
-
-            sleep($sleep_seconds);
             $attempts--;
         }
 
         return $data;
-
     }
 
     /**
@@ -117,63 +142,31 @@ class GuzzleHttpClient implements RequestInterface
      * @return array|null
      * @throws GuzzleException
      */
-    public static function post($endpoint, array $arguments = [])
+    public function post(string $endpoint, array $arguments = [])
     {
-        $client        = new Client();
-        $data          = null;
-        $attempts      = static::getAttempts($arguments['attempts'] ?? null);
-        $sleep_seconds = static::getSleepSecondsBetweenRequestSequence();
-
         /**
          * Wrap whole request so make it repeat itself until
          * response is not null or attempts got decreased to zero
          */
-        while ($attempts >= 0 && !$data) {
 
-            $response = $client->request('POST', $endpoint, [
-                'json'    => $arguments['payload'] ?? [],
+        $data     = null;
+        $attempts = $this->getMaxAttempts();
+
+        while ($attempts >= 0 && $data == null) {
+            $response = $this->http_client->request('POST', $endpoint, [
+                'json'    => $this->createJsonBody($arguments['payload'] ?? []),
                 "auth"    => $arguments['auth'] ?? [],
                 "headers" => $arguments['headers'] ?? [],
             ]);
 
-            if ($response->getStatusCode() !== 200) {
-                throw new Exception("Can't get page content!", $response->getStatusCode());
-            }
-
-            $data = json_decode($response->getBody()->getContents(), true) ?? null;
-
-            if (empty($data)) {
-                throw new Exception("Response body is empty!");
-            }
+            $response_parsed = $this->response($response);
+            $data            = $response_parsed['data'];
 
             $attempts--;
-            sleep($sleep_seconds);
         }
 
         return $data;
     }
 
-    /**
-     * Build a querystring by given associative array
-     *
-     * @param array $query_arr
-     * @param bool  $append - if append is set to true, querystring will be generated
-     * without question mark on start, else question mark will be set on the start
-     * @return string
-     */
-    public static function arrayToQuerystring(array $query_arr, $append = false)
-    {
-        if (!is_array($query_arr) || empty($query_arr)) {
-            return '';
-        }
 
-        return (!$append ? '?' : '') .
-            implode(
-                "&",
-                array_map(
-                    function ($key) use ($query_arr) { return "{$key}=$query_arr[$key]"; },
-                    array_keys($query_arr)
-                )
-            );
-    }
 }

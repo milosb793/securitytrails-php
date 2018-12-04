@@ -1,11 +1,10 @@
 <?php
 
-namespace SecurityTrails\SecurityTrails\HttpClient;
-
+namespace SecurityTrails\HttpClient;
 
 use Psr\Http\Message\ResponseInterface;
 
-abstract class HttpClient implements \RequestInterface
+abstract class HttpClient implements RequestInterface
 {
     public abstract function get(string $url, array $settings = []);
 

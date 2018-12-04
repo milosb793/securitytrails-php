@@ -1,5 +1,7 @@
 <?php
 
+namespace SecurityTrails\HttpClient;
+
 interface RequestInterface
 {
     public function get(string $url, array $settings = []);

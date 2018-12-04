@@ -12,7 +12,7 @@
   "licence": "Apache-2.0",
   "authors": [
     {
-      "name": "Miloš Bolicć",
+      "name": "Miloš Bolić",
       "email": "milosb793@gmail.com",
       "homepage": "https://github.com/milosb793",
       "role": "Developer"
@@ -36,7 +36,7 @@
   },
   "autoload": {
     "psr-4": {
-      "SecurityTrails\\": "src"
+      "SecurityTrails\\": "src/SecurityTrails/"
     }
   },
   "autoload-dev": {

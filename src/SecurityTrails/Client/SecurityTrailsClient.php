@@ -5,6 +5,7 @@ namespace SecurityTrails\Client;
 use SecurityTrails\Api\DomainApi;
 use SecurityTrails\HttpClient\GuzzleHttpClient;
 use SecurityTrails\HttpClient\HttpClient;
+use SecurityTrails\Api\SearchApi;
 use SecurityTrails\Utils\Util;
 
 /**
@@ -17,6 +18,7 @@ class SecurityTrailsClient
     public $api_key;
     public $http_client;
     public $domain_api;
+    public $search_api;
 
     /**
      * SecurityTrails constructor.
@@ -31,6 +33,7 @@ class SecurityTrailsClient
         $this->http_client = new GuzzleHttpClient($opts);
 
         $this->domain_api = new DomainApi($this);
+        $this->search_api = new SearchApi($this);
     }
 
     public function __get($name)
@@ -38,6 +41,8 @@ class SecurityTrailsClient
         switch ($name):
             case "domain":
                 return $this->domain_api;
+            case "search":
+                return $this->search_api;
             default:
                 return $this->$name;
         endswitch;
@@ -175,6 +180,11 @@ class SecurityTrailsClient
         return $this->domain_api;
     }
 
+    public function search()
+    {
+        return $this->search_api;
+    }
+
     /**
      * Facade method for available API-es
      *
@@ -184,7 +194,7 @@ class SecurityTrailsClient
      * 'DomainApi' string (for Domain API)
      *
      * @param $class
-     * @return DomainApi
+     * @return DomainApi|SearchApi\
      * @throws \Exception
      */
     public function api($class)
@@ -194,6 +204,10 @@ class SecurityTrailsClient
             case "SecurityTrails\Api\DomainApi":
             case "DomainApi":
                 return self::domain();
+            case "search":
+            case "SecurityTrails\Api\SearchApi":
+            case "SearchApi":
+                return self::search();
             default:
                 throw new \Exception('Unsupported API class!');
         }

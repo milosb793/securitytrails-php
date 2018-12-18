@@ -232,7 +232,7 @@ class GuzzleHttpClient extends HttpClient
 
         while ($attempts >= 0 && $data == null) {
             $response = $this->http_client->request('POST', $endpoint, [
-                'json'    => $this->createJsonBody($arguments['payload'] ?? []),
+                'json'    => $arguments['payload'],
                 "auth"    => $arguments['auth'] ?? [],
                 "headers" => $arguments['headers'] ?? [],
             ]);

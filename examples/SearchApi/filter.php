@@ -12,22 +12,23 @@ $filter = [
     ]
 ];
 
-//$results = $client_env->search()->filter($filter);
-//$results = $client_env->search()->filter($filter, ['page_max' => 100, 'page_current' => 1]);
-//$results = $client_env->search()->filter($filter, ['page_max' => 101, 'page_current' => 1]);
-//$results = $client_env->api("search")->filter($filter, ['page_max' => 10, 'page_current' => 1, 'limit' => 110]);
+$results = $client_env->search()->filter($filter);
+$results = $client_env->search()->filter($filter, ['page_max' => 100, 'page_current' => 1]);
+$results = $client_env->search()->filter($filter, ['page_max' => 101, 'page_current' => 1]);
+$results = $client_env->api("search")->filter($filter, ['page_max' => 10, 'page_current' => 1, 'limit' => 110]);
 
+print_r($results);
 
 /**
  * Invalid filter example
  */
-//$filter = [
-//    'filter' => [
-//        'keyword1' => 'walmart',
-//        'tld' => 'com'
-//    ]
-//];
-//$results = $client_env->search()->filter($filter);
+$filter = [
+    'filter' => [
+        'keyword1' => 'walmart',
+        'tld' => 'com'
+    ]
+];
+$results = $client_env->search()->filter($filter);
 
 
 print_r($results);

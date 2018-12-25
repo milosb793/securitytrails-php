@@ -39,18 +39,16 @@ class DomainApi extends SecurityTrailsAbstractApi
         Validator::validateDomain($domain);
 
         $url = parent::getAPIBaseUrl() . "/domain/{$domain}";
-        $response = $this->client->http_client->get($url, [
-            'headers' => $opts['headers'] ?? parent::getDefaultHeaders()
-        ]);
+        $data = $this->fetch($url, $opts);
 
-        return $response;
+        return $data;
     }
 
     /**
      * List all subdomains for given domain
      *
      * @param       $domain
-     * @param array $opts:
+     * @param array $opts :
      *     - `limit` (any integer number between 1 and -1 (as infinity)); default: -1
      * @return null
      * @throws \GuzzleHttp\Exception\GuzzleException
@@ -58,17 +56,14 @@ class DomainApi extends SecurityTrailsAbstractApi
      */
     public function subdomains($domain, array $opts = [])
     {
-        $limit = $opts['limit'] ?? -1;
-
         Validator::validateDomain($domain);
 
         $url = parent::getAPIBaseUrl() . "/domain/{$domain}/subdomains";
-        $response = $this->client->http_client->get($url, [
-            'headers' => parent::getDefaultHeaders()
-        ]);
+        $response = $this->fetch($url, $opts);
 
         $data = $response['subdomains'] ?? [];
-        return [count($data), array_slice($data, 0, $limit)];
+
+        return $data;
     }
 
     /**
@@ -85,9 +80,7 @@ class DomainApi extends SecurityTrailsAbstractApi
         Validator::validateDomain($domain);
 
         $url = parent::getAPIBaseUrl() . "/domain/{$domain}/tags";
-        $response = $this->client->http_client->get($url, [
-            'headers' => $opts['headers'] ?? parent::getDefaultHeaders()
-        ]);
+        $response = $this->fetch($url, $opts);
 
         $data = $response['tags'] ?? [];
 
@@ -113,32 +106,12 @@ class DomainApi extends SecurityTrailsAbstractApi
         Validator::validateDomain($domain);
 
         $url = parent::getAPIBaseUrl() . "/domain/{$domain}/associated";
-        $limit = $opts['limit'] ?? -1;
-        list($current_page, $max_page) = $this->getPaginationDetails($opts);
-        $throttle_identifier = $this->client->http_client->generateThrottleIdentifier("associated:{$max_page}");
+        $throttle_identifier = $this->client->http_client->generateThrottleIdentifier("associated:{$url}");
+        $opts['method'] = 'get';
 
-        $output = [];
-        while ($current_page <= $max_page) {
-            $querystring = $this->client->http_client->arrayToQuerystring(['page' => $current_page]);
-            $response = $this->client->http_client->get($url . $querystring, [
-                'headers' => $opts['headers'] ?? $this->getDefaultHeaders()
-            ]);
+        $data = $this->fetchManyRecords($url, $throttle_identifier, $opts);
 
-            $records = $response['records'] ?? [];
-
-            if (empty($records)) {
-                break;
-            }
-
-            $output = array_merge($output, $records);
-            $current_page++;
-
-            $this->throttle($throttle_identifier);
-        }
-
-        $output = array_slice($output, 0, $limit);
-
-        return [count($output), $output];
+        return $data;
     }
 
     /**
@@ -156,11 +129,7 @@ class DomainApi extends SecurityTrailsAbstractApi
         Validator::validateDomain($domain);
 
         $url = parent::getAPIBaseUrl() . "/domain/{$domain}/whois";
-        $response = $this->client->http_client->get($url, [
-            'headers' => $opts['headers'] ?? parent::getDefaultHeaders()
-        ]);
-
-        $data = $response ?? [];
+        $data = $this->fetch($url, $opts);
 
         return $data;
     }

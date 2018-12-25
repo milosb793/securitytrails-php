@@ -215,17 +215,84 @@ class SecurityTrailsAbstractApi
      */
     public function throttle($identificator)
     {
-        if ($this->client->http_client->throttleRequests()) {
-            $num_of_requests = self::RATE_LIMIT - 1; // counting zero
-            $time_to_wait    = Config::default('request_throttle_sleep_seconds');
-
-            return $this
-                ->client
-                ->http_client
-                ->throttle($identificator, $num_of_requests, $time_to_wait);
-
-        } else {
-            // throttling is disabled
+        if (!$this->client->http_client->throttleRequests()) {
+            return null;
         }
+
+        $num_of_requests = self::RATE_LIMIT - 1; // counting zero
+        $time_to_wait    = Config::default('request_throttle_sleep_seconds');
+
+        return $this
+            ->client
+            ->http_client
+            ->throttle($identificator, $num_of_requests, $time_to_wait);
+    }
+
+    public function response($data, $opts = [])
+    {
+        $limit = $opts['limit'] ?? -1;
+        $output = array_slice($data ?? [], 0, $limit);
+
+        return [count($output), $output];
+    }
+
+    /**
+     * @param $url
+     * @param array $opts
+     * @return array
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Exception
+     */
+    public function fetch($url, $opts = [])
+    {
+        $response = $this->client->http_client->get($url, [
+            'headers' => $opts['headers'] ?? self::getDefaultHeaders()
+        ]);
+
+        return $this->response($response, $opts);
+    }
+
+    /**
+     * @param $url
+     * @param string $throttle_key
+     * @param array $opts
+     * @return array
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Exception
+     */
+    public function fetchManyRecords($url, $throttle_key = '', $opts = [])
+    {
+        $payload = $opts['payload'] ?? [];
+        list($current_page, $max_page) = $this->getPaginationDetails($opts);
+        $output = [];
+
+        while ($current_page <= $max_page) {
+            $querystring = $this->client->http_client->arrayToQuerystring(['page' => $current_page]);
+
+            if ($opts['method'] == 'post') {
+                $response = $this->client->http_client->post($url . $querystring, [
+                    'headers' => $opts['headers'] ?? $this->getDefaultHeaders(),
+                    'payload' => $payload
+                ]);
+
+            } else {
+                $response = $this->client->http_client->get($url . $querystring, [
+                    'headers' => $opts['headers'] ?? $this->getDefaultHeaders(),
+                ]);
+            }
+
+            $records = $response['records'] ?? [];
+
+            if (empty($records)) {
+                break;
+            }
+
+            $output = array_merge($output, $records);
+            $current_page++;
+
+            $this->throttle($throttle_key);
+        }
+
+        return $this->response($output, $opts);
     }
 }

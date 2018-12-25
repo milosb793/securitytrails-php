@@ -194,7 +194,7 @@ class SecurityTrailsClient
      * 'DomainApi' string (for Domain API)
      *
      * @param $class
-     * @return DomainApi|SearchApi\
+     * @return DomainApi|SearchApi|
      * @throws \Exception
      */
     public function api($class)

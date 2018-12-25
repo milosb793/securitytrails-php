@@ -2,8 +2,6 @@
 
 namespace SecurityTrails\Utils;
 
-use function foo\func;
-
 /**
  * Class Validator
  *
@@ -19,7 +17,7 @@ abstract class Validator
      * @param $domain
      * @return bool
      */
-    public static function isDomainValid($domain)
+    public static function isDomainValid(string $domain)
     {
         return filter_var($domain, FILTER_VALIDATE_DOMAIN) !== false;
     }
@@ -30,7 +28,7 @@ abstract class Validator
      * @param $ip
      * @return bool
      */
-    public static function isIPv4Valid($ip)
+    public static function isIPv4Valid(string $ip)
     {
         return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
     }
@@ -41,27 +39,42 @@ abstract class Validator
      * @param $ip
      * @return bool
      */
-    public static function isIPv6Valid($ip)
+    public static function isIPv6Valid(string $ip)
     {
         return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
     }
 
+    /**
+     * Check is email in a valid format
+     *
+     * @param $email
+     * @return bool
+     */
     public static function isEmailValid($email)
     {
         return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
 
-    public static function isValidString($string, $min_len = 1)
+    /**
+     * Check is string variable valid
+     *
+     * @param string $string
+     * @param int $min_len
+     * @return bool
+     */
+    public static function isValidString(string $string, int $min_len = 1)
     {
         return is_string($string) && strlen($string) >= $min_len;
     }
 
     /**
+     * Check is filter valid
+     *
      * @param $filter
      * @return bool
      * @throws \Exception
      */
-    public static function isFilterValid($filter)
+    public static function isFilterValid(array $filter)
     {
         $filter_keyword   = 'filter';
         $validation_rules = [
@@ -111,13 +124,34 @@ abstract class Validator
     }
 
     /**
+     * Check is DSL query valid
+     *
+     * @param array $query
+     * @return bool
+     * @throws \Exception
+     */
+    public static function isDslQueryValid(array $query)
+    {
+        $query_keyword = 'query';
+        $valid = isset($query[$query_keyword]) && !empty($query[$query_keyword]) &&
+                 is_string($query[$query_keyword]) && strlen($query[$query_keyword]) > 5 &&
+                 strlen($query[$query_keyword]) <= 5000;
+
+        if (!$valid) {
+            throw new \Exception("Invalid DSL query given: {$query}");
+        }
+
+        return true;
+    }
+
+    /**
      * Validate domain
      *
      * @param $domain
      * @return bool
      * @throws \Exception
      */
-    public static function validateDomain($domain)
+    public static function validateDomain(string $domain)
     {
         if (!self::isDomainValid($domain)) {
             throw new \Exception("Domain: {$domain} is invalid!");
@@ -127,13 +161,27 @@ abstract class Validator
     }
 
     /**
+     * Validate Filter
+     *
      * @param $filter
      * @return bool
      * @throws \Exception
      */
-    public static function validateFilter($filter)
+    public static function validateFilter(array $filter)
     {
         return self::isFilterValid($filter);
+    }
+
+    /**
+     * Validate DSL query
+     *
+     * @param array $query
+     * @return bool
+     * @throws \Exception
+     */
+    public static function validateDslQuery(array $query)
+    {
+        return self::isDslQueryValid($query);
     }
 
 }

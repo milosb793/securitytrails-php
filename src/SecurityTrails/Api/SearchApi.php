@@ -65,34 +65,46 @@ class SearchApi extends SecurityTrailsAbstractApi
     {
         Validator::validateFilter($filter);
 
-        $url = $this->getAPIBaseUrl() . "/domains/list";
-        $limit = $opts['limit'] ?? -1;
-        list($current_page, $max_page) = $this->getPaginationDetails($opts);
-        $throttle_identifier = $this->client->http_client->generateThrottleIdentifier("filter:{$max_page}");
+        $url = $this->getAPIBaseUrl() . '/domains/list';
+        $throttle_identifier = $this->client->http_client->generateThrottleIdentifier("filter:{$url}");
+        $opts['payload'] = $filter;
+        $opts['method'] = 'post';
 
-        $output = [];
-        while ($current_page <= $max_page) {
-            $querystring = $this->client->http_client->arrayToQuerystring(['page' => $current_page]);
-            $response = $this->client->http_client->post($url . $querystring, [
-                'headers' => $opts['headers'] ?? $this->getDefaultHeaders(),
-                'payload' => $filter
-            ]);
+        $data = $this->fetchManyRecords($url, $throttle_identifier, $opts);
 
-            $records = $response['records'] ?? [];
+        return $data;
+    }
 
-            if (empty($records)) {
-                break;
-            }
+    /**
+     * Filter and search specific records using our DSL with this endpoint
+     *
+     * DSL stands for “Domains Specific Language”. It is a way
+     * for you to query our Exploration end point with flexible
+     * SQL like queries. This document will show you the fields
+     * available as well as give examples of how to make queries.
+     * The DSL for SecurityTrails is similar to the syntax used
+     * for SQL where predicates.
+     * Check more on: https://docs.securitytrails.com/docs/how-to-use-the-dsl
+     *
+     * @param string $query
+     * @param array $opts
+     * @return array
+     * @throws \Exception
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function dsl(array $query, array $opts = [])
+    {
+        Validator::validateDslQuery($query);
 
-            $output = array_merge($output, $records);
-            $current_page++;
+        $url = $this->getAPIBaseUrl() . '/domains/list';
+        $throttle_identifier = $this->client->http_client->generateThrottleIdentifier("dsl:{$url}");
+        $opts['method'] = 'post';
+        $opts['payload'] = $query;
 
-            $this->throttle($throttle_identifier);
-        }
+        $data = $this->fetchManyRecords($url, $throttle_identifier, $opts);
 
-        $output = array_slice($output, 0, $limit);
+        return $data;
 
-        return [count($output), $output];
     }
 
 }
